@@ -1,0 +1,50 @@
+from core.solver import TOSSolver, evaluate_bitboards_numba
+import numpy as np
+
+def test_evaluate_bitboards_counts_combo_and_cleared_cells():
+    bitboards = np.zeros(6, dtype=np.uint32)
+    bitboards[0] = (1 << 0) | (1 << 1) | (1 << 2)
+    bitboards[1] = (1 << 3) | (1 << 9) | (1 << 15)
+
+    score, combos, cleared = evaluate_bitboards_numba(bitboards)
+
+    assert score > 0
+    assert combos == 2
+    assert cleared == 6
+
+
+def test_solve_mode_changes_search_policy_without_changing_path_legality():
+    grid = [
+        [0, 0, 1, 2, 3, 4],
+        [1, 2, 3, 4, 5, 0],
+        [2, 3, 4, 5, 0, 1],
+        [3, 4, 5, 0, 1, 2],
+        [4, 5, 0, 1, 2, 3],
+    ]
+    obs = [[0] * 6 for _ in range(5)]
+    solver = TOSSolver(max_steps=4, beam_width=30)
+
+    for mode in ("short_8c", "max_combo", "full_board"):
+        path, combos, cleared = solver.solve(grid, obs, solve_mode=mode)
+        assert path
+        assert combos >= 0
+        assert cleared >= 0
+        for (r1, c1), (r2, c2) in zip(path, path[1:]):
+            assert abs(r1 - r2) + abs(c1 - c2) == 1
+
+
+def test_obstacle_cells_are_not_used_in_path():
+    grid = [
+        [0, 1, 2, 3, 4, 5],
+        [1, 2, 3, 4, 5, 0],
+        [2, 3, 4, 5, 0, 1],
+        [3, 4, 5, 0, 1, 2],
+        [4, 5, 0, 1, 2, 3],
+    ]
+    obs = [[0] * 6 for _ in range(5)]
+    obs[2][2] = 1
+
+    solver = TOSSolver(max_steps=5, beam_width=40)
+    path, _combos, _cleared = solver.solve(grid, obs, solve_mode="full_board")
+
+    assert (2, 2) not in path
