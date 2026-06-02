@@ -32,7 +32,7 @@ class MainWindow:
         
         self.root = ctk.CTk()
         self.root.title("TOS Solver - 神魔轉珠助手 PRO")
-        self.root.geometry("480x700")
+        self.root.geometry("500x740")
         self.root.resizable(False, False)
         
         self.create_widgets()
@@ -44,7 +44,8 @@ class MainWindow:
             "max_steps": 45, "beam_width": 200, "solve_mode": "max_combo",
             "move_delay_ms": 45, "start_delay_ms": 300,
             "mouse_move_threshold": 30, "auto_trigger": 0, "auto_interval_s": 1.0,
-            "min_confidence": 0.45, "max_low_confidence_cells": 2, "allow_obstacles": 1
+            "min_confidence": 0.45, "max_low_confidence_cells": 2, "allow_obstacles": 1,
+            "target_combo": 8
         }
         if os.path.exists(self.config_path):
             try:
@@ -90,35 +91,77 @@ class MainWindow:
         settings_card.pack(fill=ctk.X, padx=20, pady=10)
         
         s_title = ctk.CTkLabel(settings_card, text="2. 演算法與策略設定 (Settings)", font=("Microsoft JhengHei", 14, "bold"))
-        s_title.grid(row=0, column=0, columnspan=2, sticky="w", padx=15, pady=(10, 10))
+        s_title.grid(row=0, column=0, columnspan=4, sticky="w", padx=15, pady=(10, 10))
         
-        def create_entry(row, label_text, key):
-            ctk.CTkLabel(settings_card, text=label_text, font=("Microsoft JhengHei", 12)).grid(row=row, column=0, sticky="w", padx=15, pady=5)
+        def create_entry(row, col_start, label_text, key):
+            ctk.CTkLabel(settings_card, text=label_text, font=("Microsoft JhengHei", 12)).grid(row=row, column=col_start, sticky="w", padx=(15, 5), pady=5)
             var = tk.StringVar(value=str(self.config.get(key, "")))
-            entry = ctk.CTkEntry(settings_card, textvariable=var, width=80, justify="center")
-            entry.grid(row=row, column=1, sticky="e", padx=15, pady=5)
+            entry = ctk.CTkEntry(settings_card, textvariable=var, width=70, justify="center")
+            entry.grid(row=row, column=col_start + 1, sticky="e", padx=(5, 15), pady=5)
             entry.bind("<FocusOut>", lambda e: self.on_settings_change())
             return var
             
-        self.steps_var = create_entry(1, "路徑步數 (10-200):", "max_steps")
-        self.beam_var = create_entry(2, "搜尋寬度 (10-2000):", "beam_width")
-        self.interval_var = create_entry(3, "辨識間隔秒數 (0.05-10):", "auto_interval_s")
-        self.move_delay_var = create_entry(4, "轉珠速度 ms (1-2000):", "move_delay_ms")
-        self.start_delay_var = create_entry(5, "起手延遲 ms (10-2000):", "start_delay_ms")
+        self.steps_var = create_entry(1, 0, "路徑步數:", "max_steps")
+        self.beam_var = create_entry(1, 2, "搜尋寬度:", "beam_width")
+        
+        self.move_delay_var = create_entry(2, 0, "轉珠速度(ms):", "move_delay_ms")
+        self.start_delay_var = create_entry(2, 2, "起手延遲(ms):", "start_delay_ms")
+        
+        self.interval_var = create_entry(3, 0, "辨識間隔(秒):", "auto_interval_s")
 
         # 自動起手開關
-        ctk.CTkLabel(settings_card, text="自動起手 (Auto Play):", font=("Microsoft JhengHei", 12)).grid(row=6, column=0, sticky="w", padx=15, pady=(5, 15))
+        ctk.CTkLabel(settings_card, text="自動起手:", font=("Microsoft JhengHei", 12)).grid(row=3, column=2, sticky="w", padx=(15, 5), pady=5)
         self.auto_trigger_switch = ctk.CTkSwitch(
             settings_card, text="", command=self.on_auto_trigger_toggle,
             onvalue=1, offvalue=0, progress_color="#2ecc71"
         )
-        self.auto_trigger_switch.grid(row=6, column=1, sticky="e", padx=15, pady=(5, 15))
+        self.auto_trigger_switch.grid(row=3, column=3, sticky="e", padx=(5, 15), pady=5)
         if self.config.get("auto_trigger", 0) == 1:
             self.auto_trigger_switch.select()
         else:
             self.auto_trigger_switch.deselect()
 
+        # 轉珠策略下拉選單 (Row 4)
+        ctk.CTkLabel(settings_card, text="轉珠策略:", font=("Microsoft JhengHei", 12)).grid(row=4, column=0, sticky="w", padx=(15, 5), pady=(5, 10))
+        self.strategy_map = {
+            "最大 Combo": "max_combo",
+            "首消全版": "full_board",
+            "至少指定 Combo": "at_least_c",
+            "剛好指定 Combo": "exactly_c"
+        }
+        self.strategy_rev_map = {v: k for k, v in self.strategy_map.items()}
+        current_strategy = self.config.get("solve_mode", "max_combo")
+        current_strategy_display = self.strategy_rev_map.get(current_strategy, "最大 Combo")
+        
+        self.strategy_menu = ctk.CTkOptionMenu(
+            settings_card,
+            values=list(self.strategy_map.keys()),
+            command=self.on_strategy_change,
+            width=110
+        )
+        self.strategy_menu.set(current_strategy_display)
+        self.strategy_menu.grid(row=4, column=1, sticky="e", padx=(5, 15), pady=(5, 10))
+
+        # 目標 Combo 數選擇 (Row 4)
+        self.target_combo_lbl = ctk.CTkLabel(settings_card, text="目標 Combo:", font=("Microsoft JhengHei", 12))
+        self.target_combo_lbl.grid(row=4, column=2, sticky="w", padx=(15, 5), pady=(5, 10))
+        
+        self.target_combo_menu = ctk.CTkOptionMenu(
+            settings_card,
+            values=[str(i) for i in range(1, 11)],
+            command=self.on_target_combo_change,
+            width=70
+        )
+        self.target_combo_menu.set(str(self.config.get("target_combo", 8)))
+        self.target_combo_menu.grid(row=4, column=3, sticky="e", padx=(5, 15), pady=(5, 10))
+        
+        # 根據目前的策略更新目標 Combo 欄位狀態
+        self.update_target_combo_state(current_strategy)
+
         settings_card.grid_columnconfigure(0, weight=1)
+        settings_card.grid_columnconfigure(1, weight=1)
+        settings_card.grid_columnconfigure(2, weight=1)
+        settings_card.grid_columnconfigure(3, weight=1)
 
         # --- 核心卡片容器 3：即時辨識預覽棋盤 ---
         preview_card = ctk.CTkFrame(self.root, corner_radius=10)
@@ -263,6 +306,27 @@ class MainWindow:
     def trigger_stop_auto(self): 
         self.controller.auto_player.stop()
         self.overlay.clear()
+
+    def on_strategy_change(self, selected_display: str) -> None:
+        strategy_key = self.strategy_map.get(selected_display, "max_combo")
+        self.config["solve_mode"] = strategy_key
+        self.save_config()
+        self.update_target_combo_state(strategy_key)
+        
+    def on_target_combo_change(self, selected_val: str) -> None:
+        try:
+            self.config["target_combo"] = int(selected_val)
+            self.save_config()
+        except ValueError:
+            pass
+            
+    def update_target_combo_state(self, strategy: str) -> None:
+        if strategy in ("at_least_c", "exactly_c"):
+            self.target_combo_lbl.configure(text_color="#ffffff")
+            self.target_combo_menu.configure(state="normal")
+        else:
+            self.target_combo_lbl.configure(text_color="#555555")
+            self.target_combo_menu.configure(state="disabled")
 
     def run(self) -> None:
         self.root.mainloop()

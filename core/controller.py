@@ -137,10 +137,13 @@ class BotController:
         max_steps = self.config.get("max_steps", 30)
         beam_width = self.config.get("beam_width", 100)
         solve_mode = self.config.get("solve_mode", "max_combo")
+        target_combo = self.config.get("target_combo", 8)
         
         solver = TOSSolver(max_steps=max_steps, beam_width=beam_width)
         t0 = time.time()
-        best_path, est_combos, est_cleared = solver.solve(grid, None, solve_mode=solve_mode)
+        best_path, est_combos, est_cleared = solver.solve(
+            grid, None, solve_mode=solve_mode, target_combo=target_combo
+        )
         t1 = time.time()
         print(f"路徑計算完成，耗時: {(t1 - t0) * 1000:.2f} 毫秒")
         
@@ -173,10 +176,13 @@ class BotController:
         max_steps = self.config.get("max_steps", 30)
         beam_width = self.config.get("beam_width", 100)
         solve_mode = self.config.get("solve_mode", "max_combo")
+        target_combo = self.config.get("target_combo", 8)
         
         solver = TOSSolver(max_steps=max_steps, beam_width=beam_width)
         t0 = time.time()
-        best_path, est_combos, est_cleared = solver.solve(grid, None, solve_mode=solve_mode)
+        best_path, est_combos, est_cleared = solver.solve(
+            grid, None, solve_mode=solve_mode, target_combo=target_combo
+        )
         t1 = time.time()
         print(f"路徑計算完成，耗時: {(t1 - t0) * 1000:.2f} 毫秒")
         

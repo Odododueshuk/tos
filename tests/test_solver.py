@@ -48,3 +48,25 @@ def test_obstacle_cells_are_not_used_in_path():
     path, _combos, _cleared = solver.solve(grid, obs, solve_mode="full_board")
 
     assert (2, 2) not in path
+
+
+def test_custom_target_combo_modes():
+    # A standard board layout
+    grid = [
+        [0, 0, 0, 1, 1, 1],
+        [2, 2, 2, 3, 3, 3],
+        [4, 4, 4, 5, 5, 5],
+        [0, 1, 2, 3, 4, 5],
+        [5, 4, 3, 2, 1, 0],
+    ]
+    obs = [[0] * 6 for _ in range(5)]
+    solver = TOSSolver(max_steps=25, beam_width=150)
+
+    # Test "at_least_c" (e.g. at least 4 combos)
+    path, combos, cleared = solver.solve(grid, obs, solve_mode="at_least_c", target_combo=4)
+    assert combos >= 4
+
+    # Test "exactly_c" (e.g. exactly 5 combos)
+    path, combos, cleared = solver.solve(grid, obs, solve_mode="exactly_c", target_combo=5)
+    assert combos == 5
+

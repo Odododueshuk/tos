@@ -31,20 +31,33 @@ python main.py
 - `F4`: 辨識、求解並自動轉珠
 - `F5`: 停止自動轉珠
 
-## 求解模式
+## 求解模式與自選 Combo 功能
 
-`config.json` 的 `solve_mode` 支援：
+專案內建強大的多重轉珠演算法，支援靈活的消珠策略與自選 Combo 功能，可在 GUI 面板「轉珠策略」下拉選單中直接切換（或透過 `config.json` 的 `solve_mode` 進行設定）：
 
-- `short_8c`: 找到 8 combo 以上的最短路徑就停止
-- `max_combo`: 在步數限制內追求 combo 數
-- `full_board`: 偏好高 combo 與高消除顆數
-- `priority_color`: 目前等同 `full_board`，保留給指定屬性優先策略
+- **最大 Combo (`max_combo`)**：在路徑步數限制內，全力追求最高的 Combo 數。
+- **首消全版 (`full_board`)**：在追求高 Combo 的同時，優先偏好消除最多顆數的符石，以達到清版與最高爆發效果。
+- **至少指定 Combo (`at_least_c`)**：使用者自選目標 Combo 數（支援 **1~10 Combo**）。當演算法搜尋到滿足 $\ge N$ Combo 的最短路徑時將立即停止，極大化轉珠速度與路徑精簡度，最適合用來破解特定 Combo 盾。
+- **剛好指定 Combo (`exactly_c`)**：使用者自選目標 Combo 數（支援 **1~10 Combo**）。演算法會精準調整消除版面，確保最終消珠結果剛好等於 $N$ Combo，是破解「剛好 N Combo 盾」的終極利器。
+- `short_8c`：歷史相容模式，找到 8 Combo 以上的最短路徑即停。
+- `priority_color`：目前等同 `full_board`。
 
-## 安全設定
+> [!TIP]
+> 轉珠助手 GUI 具備流暢的控制連動。當您在「轉珠策略」選單中選擇 **「至少指定 Combo」** 或 **「剛好指定 Combo」** 時，「目標 Combo 數」選擇框會自動亮起並啟用；若選擇其他策略，該欄位則會智慧型自動變灰並停用，避免操作混淆。
 
-- `min_confidence`: 單格辨識信心下限，低於此值會被 GUI 標示
-- `max_low_confidence_cells`: 自動起手允許的低信心格數
-- `allow_obstacles`: 保留相容用；目前疑似障礙只會標示，不會阻止自動起手，也不會影響求解路徑
+## 演算法與核心參數說明
+
+除了在 GUI 直觀操作外，您也可以在專案的 `config.json` 中配置或查看以下核心參數：
+
+- `solve_mode`：轉珠策略（支援上述策略鍵值）。
+- `target_combo`：目標 Combo 數（支援整數 `1` ~ `10`，預設為 `8`）。
+- `max_steps`：最大轉珠路徑步數（支援 `10` ~ `200` 步）。
+- `beam_width`：束搜尋（Beam Search）寬度，數值越大路徑質量越高但運算稍慢（支援 `10` ~ `2000`）。
+- `move_delay_ms`：滑鼠拖曳轉珠時每一步的移動速度（ms），速度越小轉越快。
+- `start_delay_ms`：起手前的延遲時間（ms）。
+- `min_confidence`：單格辨識信心下限，低於此值會被 GUI 標示。
+- `max_low_confidence_cells`：自動起手允許的低信心格數。
+- `allow_obstacles`：保留相容用；目前疑似障礙只會標示，不會阻止自動起手，也不會影響求解路徑。
 
 ## 測試
 

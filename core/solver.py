@@ -19,7 +19,8 @@ for r in range(ROWS - 2):
     for c in range(COLS):
         V_MASK |= 1 << (r * COLS + c)
 
-SUPPORTED_SOLVE_MODES = {"short_8c", "max_combo", "full_board", "priority_color"}
+SUPPORTED_SOLVE_MODES = {"short_8c", "max_combo", "full_board", "priority_color", "at_least_c", "exactly_c"}
+
 
 @nb.njit(cache=True)
 def popcount(n):
@@ -81,6 +82,9 @@ def evaluate_bitboards_numba(bitboards):
 MODE_SHORT_8C = 0
 MODE_MAX_COMBO = 1
 MODE_FULL_BOARD = 2
+MODE_AT_LEAST_C = 3
+MODE_EXACTLY_C = 4
+
 
 @nb.njit(cache=True)
 def hash_bitboards(bitboards, pos):
@@ -90,7 +94,7 @@ def hash_bitboards(bitboards, pos):
     return h
 
 @nb.njit(cache=True)
-def run_beam_search(grid_flat, blocked, max_steps, beam_width, mode):
+def run_beam_search(grid_flat, blocked, max_steps, beam_width, mode, target_combo):
     init_bitboards = np.zeros(6, dtype=np.uint32)
     for r in range(ROWS):
         for c in range(COLS):
@@ -215,8 +219,20 @@ def run_beam_search(grid_flat, blocked, max_steps, beam_width, mode):
                 cand_scores[i] = raw_score - path_penalty
             elif mode == MODE_MAX_COMBO:
                 cand_scores[i] = est_combos * 100000.0 + est_cleared * 100.0 - path_penalty
+            elif mode == MODE_AT_LEAST_C:
+                if est_combos >= target_combo:
+                    cand_scores[i] = 1000000.0 + est_combos * 10000.0 - path_penalty
+                else:
+                    cand_scores[i] = est_combos * 10000.0 + est_cleared * 100.0 - path_penalty
+            elif mode == MODE_EXACTLY_C:
+                if est_combos == target_combo:
+                    cand_scores[i] = 1000000.0 - path_penalty
+                else:
+                    diff = abs(est_combos - target_combo)
+                    cand_scores[i] = -diff * 10000.0 + est_cleared * 10.0 - path_penalty
             else:
                 cand_scores[i] = est_combos * 100000.0 + est_cleared * 1000.0 - path_penalty
+
                 
             if cand_scores[i] > best_overall_score:
                 best_overall_score = cand_scores[i]
@@ -229,6 +245,13 @@ def run_beam_search(grid_flat, blocked, max_steps, beam_width, mode):
             if mode == MODE_SHORT_8C and est_combos >= 8:
                 best_target_found = True
                 break
+            if mode == MODE_AT_LEAST_C and est_combos >= target_combo:
+                best_target_found = True
+                break
+            if mode == MODE_EXACTLY_C and est_combos == target_combo:
+                best_target_found = True
+                break
+
                 
         if best_target_found:
             break
@@ -286,12 +309,17 @@ class TOSSolver:
         grid: List[List[int]],
         obs: Optional[List[List[int]]] = None,
         solve_mode: str = "max_combo",
+        target_combo: int = 8,
     ) -> Tuple[List[Tuple[int, int]], int, int]:
         mode = solve_mode if solve_mode in SUPPORTED_SOLVE_MODES else "max_combo"
         
         mode_flag = MODE_MAX_COMBO
         if mode == "short_8c":
             mode_flag = MODE_SHORT_8C
+        elif mode == "at_least_c":
+            mode_flag = MODE_AT_LEAST_C
+        elif mode == "exactly_c":
+            mode_flag = MODE_EXACTLY_C
         elif mode in ("full_board", "priority_color"):
             mode_flag = MODE_FULL_BOARD
 
@@ -299,7 +327,7 @@ class TOSSolver:
         grid_flat = np.array([color for row in grid for color in row], dtype=np.int32)
         
         path_indices, combos, cleared = run_beam_search(
-            grid_flat, blocked, self.max_steps, self.beam_width, mode_flag
+            grid_flat, blocked, self.max_steps, self.beam_width, mode_flag, target_combo
         )
         
         path = [(int(idx // COLS), int(idx % COLS)) for idx in path_indices]

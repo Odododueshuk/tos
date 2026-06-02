@@ -1,11 +1,11 @@
 {
-  "crop_x": 1267,
-  "crop_y": 572,
-  "crop_w": 622,
-  "crop_h": 516,
+  "crop_x": 1409,
+  "crop_y": 550,
+  "crop_w": 434,
+  "crop_h": 366,
   "max_steps": 70,
   "beam_width": 10000,
-  "solve_mode": "full_board",
+  "solve_mode": "exactly_c",
   "move_delay_ms": 10,
   "start_delay_ms": 500,
   "mouse_move_threshold": 30,
@@ -13,5 +13,6 @@
   "auto_interval_s": 1.0,
   "min_confidence": 0.45,
   "max_low_confidence_cells": 2,
-  "allow_obstacles": 1
+  "allow_obstacles": 1,
+  "target_combo": 6
 }
