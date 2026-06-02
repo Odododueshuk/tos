@@ -2,17 +2,24 @@
 
 神魔之塔 6x5 轉珠助手。專案包含棋盤截圖、符石辨識、路徑求解、透明 overlay 與 Windows SendInput 自動拖曳。
 
-## 安裝
+## Windows 快速啟動 (推薦)
+
+本專案已內建一鍵式啟動與環境建置工具。下載後僅需：
+
+1. **右鍵點擊 [launch.bat](launch.bat) 選擇「以系統管理員身分執行」**。
+2. 啟動器會自動搜尋您電腦中的 Python 環境、補全所有缺失的依賴庫（包含核心求解加速庫 `numba` 等），並在幾秒內直接開啟轉珠助手主介面。
+
+*※ 註：由於全域熱鍵註冊與滑鼠拖曳需要與高權限模擬器互動，請務必使用「以系統管理員身分執行」啟動。*
+
+## 手動安裝與執行 (開發者選項)
+
+若您偏好手動安裝，請確保系統具備 Python 3.8+ 環境後執行：
 
 ```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
+# 安裝所有必要依赖 (若有權限限制可加上 --user)
 pip install -r requirements.txt
-```
 
-## 執行
-
-```powershell
+# 啟動主程式
 python main.py
 ```
 
