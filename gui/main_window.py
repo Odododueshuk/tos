@@ -44,7 +44,7 @@ class MainWindow:
             "max_steps": 45, "beam_width": 200, "solve_mode": "max_combo",
             "move_delay_ms": 45, "start_delay_ms": 300,
             "mouse_move_threshold": 30, "auto_trigger": 0, "auto_interval_s": 1.0,
-            "min_confidence": 0.45, "max_low_confidence_cells": 2, "allow_obstacles": 1,
+            "min_confidence": 0.45, "max_low_confidence_cells": 9, "allow_obstacles": 1,
             "target_combo": 8, "target_orbs": 30
         }
         if os.path.exists(self.config_path):

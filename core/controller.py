@@ -103,7 +103,7 @@ class BotController:
 
     def _is_detection_safe(self, confidence_grid: List[List[float]], obstacle_grid: List[List[int]]) -> bool:
         min_conf = self.config.get("min_confidence", 0.45)
-        max_low_cells = self.config.get("max_low_confidence_cells", 2)
+        max_low_cells = self.config.get("max_low_confidence_cells", 9)
         
         low_conf_count = 0
         for row in confidence_grid:
