@@ -9,7 +9,7 @@
   "move_delay_ms": 10,
   "start_delay_ms": 500,
   "mouse_move_threshold": 30,
-  "auto_trigger": 1,
+  "auto_trigger": 0,
   "auto_interval_s": 1.0,
   "min_confidence": 0.45,
   "max_low_confidence_cells": 2,

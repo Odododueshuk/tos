@@ -32,7 +32,7 @@ class MainWindow:
         
         self.root = ctk.CTk()
         self.root.title("TOS Solver - 神魔轉珠助手 PRO")
-        self.root.geometry("500x740")
+        self.root.geometry("500x770")
         self.root.resizable(False, False)
         
         self.create_widgets()
@@ -45,7 +45,7 @@ class MainWindow:
             "move_delay_ms": 45, "start_delay_ms": 300,
             "mouse_move_threshold": 30, "auto_trigger": 0, "auto_interval_s": 1.0,
             "min_confidence": 0.45, "max_low_confidence_cells": 2, "allow_obstacles": 1,
-            "target_combo": 8
+            "target_combo": 8, "target_orbs": 30
         }
         if os.path.exists(self.config_path):
             try:
@@ -127,7 +127,8 @@ class MainWindow:
             "最大 Combo": "max_combo",
             "首消全版": "full_board",
             "至少指定 Combo": "at_least_c",
-            "剛好指定 Combo": "exactly_c"
+            "剛好指定 Combo": "exactly_c",
+            "指定消珠顆數": "exactly_orbs"
         }
         self.strategy_rev_map = {v: k for k, v in self.strategy_map.items()}
         current_strategy = self.config.get("solve_mode", "max_combo")
@@ -155,7 +156,16 @@ class MainWindow:
         self.target_combo_menu.set(str(self.config.get("target_combo", 8)))
         self.target_combo_menu.grid(row=4, column=3, sticky="e", padx=(5, 15), pady=(5, 10))
         
-        # 根據目前的策略更新目標 Combo 欄位狀態
+        # 目標消珠顆數選擇 (Row 5)
+        self.target_orbs_lbl = ctk.CTkLabel(settings_card, text="目標顆數:", font=("Microsoft JhengHei", 12))
+        self.target_orbs_lbl.grid(row=5, column=0, sticky="w", padx=(15, 5), pady=(5, 10))
+        
+        self.target_orbs_var = tk.StringVar(value=str(self.config.get("target_orbs", 30)))
+        self.target_orbs_entry = ctk.CTkEntry(settings_card, textvariable=self.target_orbs_var, width=110, justify="center")
+        self.target_orbs_entry.grid(row=5, column=1, sticky="e", padx=(5, 15), pady=(5, 10))
+        self.target_orbs_entry.bind("<FocusOut>", lambda e: self.on_settings_change())
+        
+        # 根據目前的策略更新目標 Combo 與顆數欄位狀態
         self.update_target_combo_state(current_strategy)
 
         settings_card.grid_columnconfigure(0, weight=1)
@@ -277,6 +287,8 @@ class MainWindow:
             self.config["auto_interval_s"] = max(0.05, min(10.0, float(self.interval_var.get())))
             self.config["move_delay_ms"] = max(1, min(2000, int(self.move_delay_var.get())))
             self.config["start_delay_ms"] = max(10, min(2000, int(self.start_delay_var.get())))
+            if hasattr(self, 'target_orbs_var'):
+                self.config["target_orbs"] = max(3, min(30, int(self.target_orbs_var.get())))
             self.save_config()
         except ValueError:
             pass
@@ -327,6 +339,14 @@ class MainWindow:
         else:
             self.target_combo_lbl.configure(text_color="#555555")
             self.target_combo_menu.configure(state="disabled")
+            
+        if hasattr(self, 'target_orbs_lbl') and hasattr(self, 'target_orbs_entry'):
+            if strategy == "exactly_orbs":
+                self.target_orbs_lbl.configure(text_color="#ffffff")
+                self.target_orbs_entry.configure(state="normal")
+            else:
+                self.target_orbs_lbl.configure(text_color="#555555")
+                self.target_orbs_entry.configure(state="disabled")
 
     def run(self) -> None:
         self.root.mainloop()

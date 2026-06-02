@@ -70,3 +70,7 @@ def test_custom_target_combo_modes():
     path, combos, cleared = solver.solve(grid, obs, solve_mode="exactly_c", target_combo=5)
     assert combos == 5
 
+    # Test "exactly_orbs" (e.g. exactly 15 orbs)
+    path, combos, cleared = solver.solve(grid, obs, solve_mode="exactly_orbs", target_orbs=15)
+    assert cleared == 15
+

@@ -19,7 +19,7 @@ for r in range(ROWS - 2):
     for c in range(COLS):
         V_MASK |= 1 << (r * COLS + c)
 
-SUPPORTED_SOLVE_MODES = {"short_8c", "max_combo", "full_board", "priority_color", "at_least_c", "exactly_c"}
+SUPPORTED_SOLVE_MODES = {"short_8c", "max_combo", "full_board", "priority_color", "at_least_c", "exactly_c", "exactly_orbs"}
 
 
 @nb.njit(cache=True)
@@ -84,6 +84,7 @@ MODE_MAX_COMBO = 1
 MODE_FULL_BOARD = 2
 MODE_AT_LEAST_C = 3
 MODE_EXACTLY_C = 4
+MODE_EXACTLY_ORBS = 5
 
 
 @nb.njit(cache=True)
@@ -94,7 +95,7 @@ def hash_bitboards(bitboards, pos):
     return h
 
 @nb.njit(cache=True)
-def run_beam_search(grid_flat, blocked, max_steps, beam_width, mode, target_combo):
+def run_beam_search(grid_flat, blocked, max_steps, beam_width, mode, target_combo, target_orbs):
     init_bitboards = np.zeros(6, dtype=np.uint32)
     for r in range(ROWS):
         for c in range(COLS):
@@ -230,6 +231,12 @@ def run_beam_search(grid_flat, blocked, max_steps, beam_width, mode, target_comb
                 else:
                     diff = abs(est_combos - target_combo)
                     cand_scores[i] = -diff * 10000.0 + est_cleared * 10.0 - path_penalty
+            elif mode == MODE_EXACTLY_ORBS:
+                if est_cleared == target_orbs:
+                    cand_scores[i] = 1000000.0 + est_combos * 100.0 - path_penalty
+                else:
+                    diff = abs(est_cleared - target_orbs)
+                    cand_scores[i] = -diff * 10000.0 + est_combos * 10.0 - path_penalty
             else:
                 cand_scores[i] = est_combos * 100000.0 + est_cleared * 1000.0 - path_penalty
 
@@ -249,6 +256,9 @@ def run_beam_search(grid_flat, blocked, max_steps, beam_width, mode, target_comb
                 best_target_found = True
                 break
             if mode == MODE_EXACTLY_C and est_combos == target_combo:
+                best_target_found = True
+                break
+            if mode == MODE_EXACTLY_ORBS and est_cleared == target_orbs:
                 best_target_found = True
                 break
 
@@ -310,6 +320,7 @@ class TOSSolver:
         obs: Optional[List[List[int]]] = None,
         solve_mode: str = "max_combo",
         target_combo: int = 8,
+        target_orbs: int = 30,
     ) -> Tuple[List[Tuple[int, int]], int, int]:
         mode = solve_mode if solve_mode in SUPPORTED_SOLVE_MODES else "max_combo"
         
@@ -320,6 +331,8 @@ class TOSSolver:
             mode_flag = MODE_AT_LEAST_C
         elif mode == "exactly_c":
             mode_flag = MODE_EXACTLY_C
+        elif mode == "exactly_orbs":
+            mode_flag = MODE_EXACTLY_ORBS
         elif mode in ("full_board", "priority_color"):
             mode_flag = MODE_FULL_BOARD
 
@@ -327,7 +340,7 @@ class TOSSolver:
         grid_flat = np.array([color for row in grid for color in row], dtype=np.int32)
         
         path_indices, combos, cleared = run_beam_search(
-            grid_flat, blocked, self.max_steps, self.beam_width, mode_flag, target_combo
+            grid_flat, blocked, self.max_steps, self.beam_width, mode_flag, target_combo, target_orbs
         )
         
         path = [(int(idx // COLS), int(idx % COLS)) for idx in path_indices]
